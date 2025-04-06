@@ -1,7 +1,7 @@
 import sqlite3
 import requests
 
-""" create database and tables"""
+#create database and tables
 
 def init_db():     
     with sqlite3.connect('assets.db') as conn:
@@ -16,7 +16,7 @@ def init_db():
                           total_quantity REAL)''')
         conn.commit()
 
-"""add transaction to the database and update balances"""
+#add transaction to the database and update balances
 
 def add_trans(coin_name, quantity, purchase_price):
     with sqlite3.connect('assets.db') as conn:
@@ -26,7 +26,7 @@ def add_trans(coin_name, quantity, purchase_price):
         conn.commit()
         update_balances()
 
-""""update balances function"""
+# balances function
 
 def update_balances():
     with sqlite3.connect('assets.db') as conn:
@@ -39,7 +39,7 @@ def update_balances():
                            (coin, total_quantity))          
         conn.commit()
 
-"""list all transactions function"""
+#list all transactions function
 
 def get_trans():
     with sqlite3.connect('assets.db') as conn:
@@ -47,15 +47,16 @@ def get_trans():
         cursor.execute("SELECT * FROM trans")
         return cursor.fetchall()
 
-"""total balance"""
+#total balance
 
 def get_total_balance():
     with sqlite3.connect('assets.db') as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT coin_name,quantity, SUM(purchase_price * quantity) AS total_sum FROM trans GROUP BY coin_name")
-        return cursor.fetchall()
+        cursor.execute("SELECT coin_name, SUM(quantity) FROM trans GROUP BY coin_name")
+        balances = cursor.fetchall()
+        return balances
 
-"""get balances function"""
+#get balances function"""
 
 def get_balances():
     with sqlite3.connect('assets.db') as conn:
@@ -65,7 +66,7 @@ def get_balances():
         return balances if balances else []
 
 
-""""get average price of coins"""
+#get average price of coins
 
 def get_avg():
     with sqlite3.connect('assets.db') as conn:
@@ -74,7 +75,7 @@ def get_avg():
         avg_price = cursor.fetchall()
         return avg_price if avg_price else []
     
-"""check balances function"""
+#check balances function
 def check_balances():       
     with sqlite3.connect('assets.db') as conn:
         cursor = conn.cursor()
@@ -87,12 +88,12 @@ def check_balances():
         else:
             print("\nFU") 
 
-# Получаем актуальные цены криптовалют
+# GET ACTUAL PRICES COINGECKO API
 def get_prices():
     url = "https://api.coingecko.com/api/v3/simple/price"
     params = {
-        "ids": "bitcoin,trust-wallet-token,solana,thorchain,the-open-network",  # CoinGecko ID монет
-        "vs_currencies": "usd"  # Валюта вывода
+        "ids": "bitcoin,trust-wallet-token,solana,thorchain,the-open-network", 
+        "vs_currencies": "usd"  
     }
 
     response = requests.get(url, params=params)
@@ -104,35 +105,33 @@ def get_prices():
         prices[coin_id] = price
     return prices
 
-# Объединенная функция для получения баланса и цен
+# GET TOTAL BALANCE AND PRICES
 def get_balance_and_prices():
-    balances = get_total_balance()  # Получаем общий баланс
-    prices = get_prices()  # Получаем актуальные цены
+    balances = get_total_balance()  
+    prices = get_prices()  
 
     print("\nОбщий баланс по криптовалютам:")
     for balance in balances:
-        coin = balance[0]  # Название монеты
-        total_sum = balance[1]  # Общий баланс монеты
-        # Конвертируем имя монеты в формат, который использует CoinGecko
-        if coin.lower() == "btc":
-            coin_id = "bitcoin"
-        elif coin.lower() == "rune":
-            coin_id = "thorchain"
-        elif coin.lower() == "sol":
-            coin_id = "solana"
-        elif coin.lower() == "ton":
-            coin_id = "the-open-network"
-        elif coin.lower() == "twt":
-            coin_id = "trust-wallet-token"
-        else:
-            coin_id = coin.lower()
+        coin = balance[0] 
+        total_quantity = balance[1]  
+        coin_id = coin.lower()
 
-        price = prices.get(coin_id, None)  # Получаем цену для конкретной монеты
-        if price:
-            total_value = total_sum * price
-            print(f"{coin.capitalize()}: {total_value:.2f} USD (Баланс: {total_sum:.2f} монет, Цена: ${price:.2f})")
-        else:
-            print(f"{coin.capitalize()}: Цена не найдена")
+
+        if coin == "BTC":
+            coin_id = "bitcoin"
+        elif coin == "RUNE":
+            coin_id = "thorchain"
+        elif coin == "SOL":
+            coin_id = "solana"
+        elif coin == "TON":
+            coin_id = "the-open-network"
+        elif coin == "TWT":
+            coin_id = "trust-wallet-token"
+
+        price = prices.get(coin_id)  # GET PRICE FROM coingecko
+        if price is not None:
+            total_value = total_quantity * price
+            print(f"{coin.capitalize()}: {total_value:.2f} USD (Баланс: {total_quantity:.2f} монет, Цена: ${price:.2f})")
 
 def main():
     init_db()
@@ -140,8 +139,7 @@ def main():
         print("\n1. Add new transaction")
         print("2. Show all transactions")
         print("3. Show coin balances")
-        print("4. Show total balance")
-        print("7. Show balance and prices")
+        print("4. Show balance and prices")
         print("6. Exit")
         choice = input("Enter your choice: ")
 
@@ -171,19 +169,13 @@ def main():
                     print(f"{coin}: {avg}")
             else:
                 print("No transactions yet.")
-        
-        elif choice == '4':
-            test = get_total_balance() 
-            print(test)
 
-        elif choice == '7':
+        elif choice == '4':
             get_balance_and_prices()
 
         elif choice == '6':
             print("Exiting...")
             break
-        else:
-            print("Invalid choice. Please try again.")
 
 if __name__ == '__main__':
     main()
